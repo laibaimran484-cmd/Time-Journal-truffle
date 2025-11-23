@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthetic TimeLock Journal DApp</title>
+
+    <meta http-equiv="Content-Security-Policy" content="
+    script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://cdn.ethers.io; 
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; 
+    font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com;
+">
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+    <style>
+        /* Place all CSS content here, or link a file: <link rel="stylesheet" href="style.css"> */
+        /* Reset and Base Styles */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #8A2BE2;
+            --secondary: #DA70D6;
+            --accent: #9370DB;
+            --dark: #1A1A2E;
+            --darker: #0F0F1B;
+            --light: #E6E6FA;
+            --glass: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- EMOJI CURSOR STYLES --- */
+        body { cursor: none !important; } /* Hide system cursor */
+
+        .custom-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            font-size: 24px;
+            transition: transform 0.1s ease;
+            text-shadow: 0 0 10px rgba(218, 112, 214, 0.8);
+            animation: floatCursor 3s ease-in-out infinite;
+            display: block;
+            left: 0; top: 0;
+            content: "🌙"; /* Default content defined in CSS */
+        }
+        
+        @keyframes floatCursor {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(5deg); }
+        }
+        
+        /* Cursor States via Body Classes */
+        body.default-cursor .custom-cursor { content: "🌙"; }
+        body.pointer-cursor .custom-cursor { content: "👆"; font-size: 28px; }
+        body.text-cursor .custom-cursor { content: "📝"; font-size: 26px; }
+        body.loading-cursor .custom-cursor { content: "⏳"; animation: spinCursor 2s linear infinite; }
+        body.success-cursor .custom-cursor { content: "✨"; }
+        body.entry-cursor .custom-cursor { content: "👀"; } /* Added for list items */
+
+        @keyframes spinCursor { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Base Styling */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 50%, #16213E 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background Animation */
+        .background { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .floating-shapes { position: absolute; width: 100%; height: 100%; }
+        .shape { position: absolute; font-size: 2rem; opacity: 0.1; animation: float 6s infinite; }
+        .shape-1 { top: 10%; left: 10%; } .shape-2 { top: 20%; right: 15%; animation-delay: 1s; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+
+        /* Layout */
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .header { text-align: center; margin-bottom: 3rem; }
+        .logo h1 { font-family: 'Playfair Display', serif; font-size: 3.5rem; color: var(--secondary); }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+        }
+
+        /* Wallet Button */
+        .wallet-section { text-align: center; margin-bottom: 3rem; }
+        .connect-btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none; padding: 1rem 2rem; border-radius: 50px; color: white;
+            font-size: 1.1rem; cursor: pointer; transition: var(--transition);
+        }
+        .connect-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4); }
+
+        .wallet-info {
+            display: inline-flex; align-items: center; gap: 1rem; margin-top: 1rem;
+            padding: 0.5rem 1.5rem; border-radius: 15px; background: var(--glass);
+        }
+
+        /* Grid & Forms */
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem; }
+        @media (max-width: 768px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .form-group { margin-bottom: 1.5rem; }
+        textarea, input {
+            width: 100%; padding: 1rem; background: rgba(255,255,255,0.05);
+            border: 1px solid var(--glass-border); border-radius: 12px; color: var(--light);
+            font-family: 'Poppins', sans-serif;
+            transition: var(--transition);
+        }
+        /* Added Focus State */
+        textarea:focus, input:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 10px rgba(218, 112, 214, 0.5); 
+        }
+
+        .save-btn, .action-btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none; padding: 1.2rem; border-radius: 15px; color: white; cursor: pointer;
+            transition: var(--transition);
+        }
+        .save-btn { width: 100%; }
+        .save-btn:hover, .decrypt-btn:hover, .action-btn:not([disabled]):hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 5px 20px rgba(147, 112, 219, 0.5); 
+        }
+
+        .save-btn:disabled, .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Entries List */
+        .entries-list { max-height: 500px; overflow-y: auto; }
+        /* Scrollbar Styling for Webkit */
+        .entries-list::-webkit-scrollbar { width: 8px; }
+        .entries-list::-webkit-scrollbar-track { background: var(--darker); border-radius: 10px; }
+        .entries-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+        .entries-list::-webkit-scrollbar-thumb:hover { background: var(--secondary); }
+        
+        .entry-card { /* Renamed from entry-card to reflect usage in JS */
+            background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+            border-radius: 15px; padding: 1.5rem; margin-bottom: 1rem; transition: var(--transition);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .entry-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.1); }
+        
+        .entry-status { font-weight: bold; }
+        .entry-status.locked { color: #FF6B6B; }
+        .entry-status.unlocked { color: #4ECDC4; }
+        .entry-id { opacity: 0.7; font-size: 0.9em; }
+        .entry-header { display: flex; flex-direction: column; }
+        .entry-actions .action-btn { padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.9em; }
+
+        /* Modal */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+        .modal.hidden { display: none !important; }
+        .modal-content { width: 90%; max-width: 500px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .close { cursor: pointer; font-size: 1.5rem; }
+        .decrypt-btn {
+            width: 100%; margin-top: 1rem; padding: 1rem; background: var(--secondary);
+            border: none; border-radius: 12px; color: white; cursor: pointer;
+            transition: var(--transition);
+        }
+        .decryption-section { margin-top: 1rem; }
+        
+        /* Display Area for Decrypted Content */
+        #entryContentDisplay {
+            white-space: pre-wrap;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--accent);
+        }
+        
+        .hidden { display: none !important; }
+
+        /* Stats */
+        .stats-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        .stat-card { display: flex; align-items: center; gap: 1rem; background: var(--glass); padding: 1rem; border-radius: 15px; }
+        .stat-card h3 { color: var(--secondary); font-size: 2.5rem; }
+    </style>
+</head>
+<body>
+    <div id="particles-js" class="background"></div>
+    
+    <div class="custom-cursor"></div>
+
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <h1>🕰️ TimeLock Journal</h1>
+            </div>
+            <p>Secure Your Thoughts. Unlock the Future.</p>
+        </header>
+
+        <section class="wallet-section">
+            <button id="connectWallet" class="connect-btn">Connect Wallet</button>
+            
+            <div id="walletInfo" class="wallet-info hidden">
+                <span>Connected:</span>
+                <span id="walletAddress">0x...</span>
+            </div>
+        </section>
+
+        <main class="main-grid">
+            <div class="write-card glass-card">
+                <h2>Write New Entry</h2>
+                <div class="form-group">
+                    <label for="journalEntry">Journal Entry (Content)</label>
+                    <textarea id="journalEntry" rows="8" placeholder="Enter your thoughts..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="unlockTime">Unlock Date</label>
+                    <input type="datetime-local" id="unlockTime">
+                </div>
+                <div class="form-group">
+                    <label for="encryptionKey">Encryption Key (Private Password)</label>
+                    <input type="password" id="encryptionKey" placeholder="Keep this private to decrypt!">
+                </div>
+                <button id="saveEntry" class="save-btn" disabled>Save Entry to Chain</button>
+            </div>
+
+            <div class="entries-card glass-card">
+                <h2>Your Entries</h2>
+                <div class="stats-section">
+                    <div class="stat-card">
+                        <h3><span id="totalEntries">0</span></h3>
+                        <p>Total Entries</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3><span id="unlockedEntries">0</span></h3>
+                        <p>Unlocked</p>
+                    </div>
+                </div>
+                <hr style="margin: 1rem 0; border-color: rgba(255, 255, 255, 0.1);">
+                <div id="entriesList" class="entries-list">
+                    <div class="empty-state" style="text-align:center;">Connect your wallet to see entries.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="readModal" class="modal hidden">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2>Read TimeLock Entry</h2>
+                <span class="close">&times;</span>
+            </div>
+            
+            <input type="hidden" id="currentReadId">
+
+            <div id="decryptionSection" class="decryption-section">
+                <p>Enter the private key used to encrypt this entry:</p>
+                <input type="password" id="decryptKeyInput" placeholder="Encryption Key">
+                <button id="decryptEntryBtn" class="decrypt-btn">Decrypt & Reveal</button>
+            </div>
+            
+            <div id="entryContentDisplay" class="hidden"></div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
